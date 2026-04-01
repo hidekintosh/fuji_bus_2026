@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ふじようちえん バス時刻</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFF8F0;
+    --card: #FFFFFF;
+    --accent: #FF6B35;
+    --accent2: #FFB347;
+    --green: #4CAF82;
+    --blue: #4A90D9;
+    --purple: #9B6DFF;
+    --text: #2D2D2D;
+    --muted: #888;
+    --shadow: 0 8px 32px rgba(255,107,53,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 60px;
+    position: relative;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: -80px; right: -80px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(255,179,71,0.2) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -60px; left: -60px;
+    width: 250px; height: 250px;
+    background: radial-gradient(circle, rgba(255,107,53,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header { text-align: center; margin-bottom: 20px; animation: fadeDown 0.6s ease both; }
+  .header .emoji { font-size: 44px; display: block; margin-bottom: 2px; }
+  .header h1 { font-size: 20px; font-weight: 900; color: var(--accent); }
+  .header .subtitle { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; animation: fadeDown 0.6s 0.05s ease both; }
+  .tab {
+    flex: 1; max-width: 180px; padding: 10px 0; border-radius: 50px;
+    border: 2px solid #EEE; background: white;
+    font-family: 'Zen Maru Gothic', sans-serif; font-size: 13px; font-weight: 700;
+    color: var(--muted); cursor: pointer; transition: all 0.2s; text-align: center;
+  }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 4px 14px rgba(255,107,53,0.3); }
+  .view { width: 100%; max-width: 400px; display: none; }
+  .view.active { display: flex; flex-direction: column; gap: 14px; animation: fadeUp 0.4s ease both; }
+  .date-picker-card {
+    background: white; border-radius: 20px; padding: 16px 20px;
+    box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px;
+    border: 2px solid rgba(255,107,53,0.1);
+  }
+  .date-picker-card label { font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .date-picker-card input[type="date"] {
+    flex: 1; border: 2px solid #EEE; border-radius: 12px; padding: 8px 12px;
+    font-family: 'Zen Maru Gothic', sans-serif; font-size: 14px; font-weight: 700;
+    color: var(--text); outline: none; transition: border 0.2s;
+  }
+  .date-picker-card input[type="date"]:focus { border-color: var(--accent); }
+  .today-btn {
+    padding: 8px 14px; border-radius: 12px; border: none; background: var(--accent);
+    color: white; font-family: 'Zen Maru Gothic', sans-serif; font-size: 12px;
+    font-weight: 700; cursor: pointer; white-space: nowrap;
+  }
+  .date-card { background: white; border-radius: 20px; padding: 18px 24px; box-shadow: var(--shadow); border: 2px solid rgba(255,107,53,0.1); }
+  .date-card .date-label { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; margin-bottom: 4px; }
+  .date-card .date-main { font-size: 26px; font-weight: 900; color: var(--text); }
+  .date-card .date-type { display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+  .type-normal  { background: #E8F5E9; color: #2E7D32; }
+  .type-wed     { background: #E3F2FD; color: #1565C0; }
+  .type-half    { background: #FCE4EC; color: #880E4F; }
+  .type-gs      { background: #F3E5F5; color: #6A1B9A; }
+  .type-holiday { background: #FFF3E0; color: #E65100; }
+  .type-nobus   { background: #FAFAFA; color: #999; }
+  .section-label { font-size: 11px; font-weight: 900; letter-spacing: 0.12em; color: var(--muted); padding: 0 4px; margin-bottom: -6px; }
+  .bus-card { background: white; border-radius: 20px; padding: 18px 20px; box-shadow: var(--shadow); border-left: 5px solid var(--accent); position: relative; overflow: hidden; }
+  .bus-card.morning      { border-left-color: var(--accent2); }
+  .bus-card.aoringo      { border-left-color: var(--green); }
+  .bus-card.kobus1       { border-left-color: var(--blue); }
+  .bus-card.kobus2       { border-left-color: var(--purple); }
+  .bus-card.kobus-single { border-left-color: var(--accent); }
+  .bus-card.no-bus       { border-left-color: #DDD; }
+  .bus-card::before { content: ''; position: absolute; top: 0; right: 0; width: 80px; height: 80px; border-radius: 0 20px 0 80px; opacity: 0.05; }
+  .bus-card.morning::before      { background: var(--accent2); }
+  .bus-card.aoringo::before      { background: var(--green); }
+  .bus-card.kobus1::before       { background: var(--blue); }
+  .bus-card.kobus2::before       { background: var(--purple); }
+  .bus-card.kobus-single::before { background: var(--accent); }
+  .bus-direction { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+  .bus-direction .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .morning      .dot { background: var(--accent2); }
+  .aoringo      .dot { background: var(--green); }
+  .kobus1       .dot { background: var(--blue); }
+  .kobus2       .dot { background: var(--purple); }
+  .kobus-single .dot { background: var(--accent); }
+  .bus-badge { display: inline-block; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 20px; margin-bottom: 4px; }
+  .badge-aoringo { background: #E8F5E9; color: #2E7D32; }
+  .badge-k1      { background: #E3F2FD; color: #1565C0; }
+  .badge-k2      { background: #EDE7F6; color: #512DA8; }
+  .badge-k       { background: #FFF3E0; color: #E65100; }
+  .bus-name { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 2px; }
+  .bus-time { font-family: 'DM Mono', monospace; font-size: 40px; font-weight: 500; color: var(--text); line-height: 1; letter-spacing: -0.02em; }
+  .bus-time .unit { font-family: 'Zen Maru Gothic', sans-serif; font-size: 15px; color: var(--muted); margin-left: 4px; }
+  .bus-note { margin-top: 8px; font-size: 11px; color: var(--muted); background: #F8F8F8; padding: 6px 10px; border-radius: 8px; }
+  .no-bus-msg { font-size: 18px; font-weight: 700; color: #BBB; text-align: center; padding: 10px 0; }
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; background: white; border-radius: 20px; padding: 14px 20px; box-shadow: var(--shadow); }
+  .cal-nav button { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--accent); padding: 4px 10px; border-radius: 10px; transition: background 0.15s; }
+  .cal-nav button:hover { background: #FFF0EA; }
+  .cal-nav .cal-title { font-size: 18px; font-weight: 900; color: var(--text); }
+  .calendar { background: white; border-radius: 20px; padding: 16px; box-shadow: var(--shadow); }
+  .cal-header { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 8px; }
+  .cal-header div { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 4px 0; }
+  .cal-header div:first-child { color: #E57373; }
+  .cal-header div:last-child  { color: #7986CB; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 10px; cursor: pointer; transition: transform 0.1s, background 0.15s; }
+  .cal-cell:hover  { background: rgba(255,107,53,0.07); }
+  .cal-cell:active { transform: scale(0.92); }
+  .cal-cell .cal-day { font-size: 13px; font-weight: 700; line-height: 1; }
+  .cal-cell .cal-dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 2px; }
+  .cal-cell.empty { pointer-events: none; }
+  .cal-cell.today .cal-day { background: var(--accent); color: white !important; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .cal-cell.selected { background: rgba(255,107,53,0.12); }
+  .cal-cell.t-normal  .cal-dot { background: #4CAF82; }
+  .cal-cell.t-wed     .cal-dot { background: #4A90D9; }
+  .cal-cell.t-half    .cal-dot { background: #E91E8C; }
+  .cal-cell.t-gs      .cal-dot { background: #9B6DFF; }
+  .cal-cell.t-holiday .cal-dot { background: #FF9800; }
+  .cal-cell.t-nobus   .cal-dot { background: transparent; }
+  .cal-cell.t-nobus   .cal-day { color: #CCC; }
+  .cal-cell.sun .cal-day { color: #E57373; }
+  .cal-cell.sat .cal-day { color: #7986CB; }
+  .cal-cell.t-nobus.sun .cal-day, .cal-cell.t-nobus.sat .cal-day { color: #DDD; }
+  .detail-popup { background: white; border-radius: 20px; padding: 20px; box-shadow: var(--shadow); border: 2px solid rgba(255,107,53,0.15); display: none; }
+  .detail-popup.show { display: block; animation: fadeUp 0.3s ease both; }
+  .detail-date { font-size: 17px; font-weight: 900; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .detail-buses { display: flex; flex-direction: column; gap: 8px; }
+  .detail-bus { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: #F8F8F8; }
+  .detail-bus .dbadge { font-size: 10px; font-weight: 900; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+  .detail-bus .dname  { font-size: 12px; font-weight: 700; color: var(--muted); }
+  .detail-bus .dnote  { font-size: 10px; color: #aaa; margin-top: 1px; }
+  .detail-bus .dtime  { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; color: var(--text); margin-left: auto; white-space: nowrap; }
+  .detail-bus .dunit  { font-size: 11px; color: #888; }
+  .detail-no { font-size: 14px; font-weight: 700; color: #BBB; text-align: center; padding: 8px 0; }
+  .detail-section { font-size: 10px; font-weight: 900; color: #BBB; letter-spacing: 0.1em; margin: 6px 0 2px; padding: 0 2px; }
+  .legend { background: white; border-radius: 20px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .legend-title { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 10px; }
+  .legend-items { display: flex; flex-wrap: wrap; gap: 10px; }
+  .legend-item  { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--text); }
+  .legend-dot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeUp   { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<div class="header">
+  <span class="emoji">🚌</span>
+  <h1>ふじようちえん バス</h1>
+  <div class="subtitle">セブンイレブン緑町店向 停留所</div>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('today')">🗓 時刻確認</button>
+  <button class="tab" onclick="switchTab('calendar')">📅 年間予定</button>
+</div>
+<div class="view active" id="view-today">
+  <div class="date-picker-card">
+    <label>日付</label>
+    <input type="date" id="datePicker" onchange="onDateChange()">
+    <button class="today-btn" onclick="goToday()">今日</button>
+  </div>
+  <div class="date-card">
+    <div class="date-label">DATE</div>
+    <div class="date-main" id="dateMain">—</div>
+    <div id="dateType"></div>
+  </div>
+  <div id="busCards"></div>
+</div>
+<div class="view" id="view-calendar">
+  <div class="cal-nav">
+    <button onclick="prevMonth()">‹</button>
+    <div class="cal-title" id="calTitle">—</div>
+    <button onclick="nextMonth()">›</button>
+  </div>
+  <div class="calendar">
+    <div class="cal-header">
+      <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+  <div class="detail-popup" id="detailPopup"></div>
+  <div class="legend">
+    <div class="legend-title">凡例</div>
+    <div class="legend-items">
+      <div class="legend-item"><div class="legend-dot" style="background:#4CAF82"></div>通常保育</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4A90D9"></div>水曜日</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#E91E8C"></div>半日保育</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9B6DFF"></div>GS英語</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FF9800"></div>振替・長期休暇</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#CCC"></div>休園日</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCHEDULE = {};
+
+function setRange(start, end, type) {
+  const s = new Date(start + 'T00:00:00');
+  const e = new Date(end   + 'T00:00:00');
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate()+1))
+    SCHEDULE[fmt(d)] = type;
+}
+function fmt(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// 祝日・休園（土日以外）
+[
+  '2026-04-01','2026-04-02','2026-04-03', // 職員出勤
+  '2026-04-29',                            // 昭和の日
+  '2026-05-03','2026-05-04','2026-05-05', // GW
+  '2026-05-06',                            // バス運行なし
+  '2026-07-20',                            // 海の日
+  '2026-08-11',                            // 山の日
+  '2026-09-21','2026-09-22','2026-09-23', // 敬老の日・国民の休日・秋分の日
+  '2026-10-12',                            // スポーツの日
+  '2026-11-03','2026-11-23',              // 文化の日・勤労感謝の日
+  '2026-12-30',                            // バス運行なし
+  '2027-01-01',                            // 元日
+  '2027-01-12',                            // 成人の日
+  '2027-02-11','2027-02-23',              // 建国記念の日・天皇誕生日
+  '2027-03-20','2027-03-21',              // 春分の日・振替
+].forEach(d => SCHEDULE[d] = 'nobus');
+
+// 振替休日・長期休暇
+[
+  '2026-04-30', // 昭和の日振替
+  '2026-05-01', // 振替休日
+  '2026-06-22', // 振替休日
+  '2026-08-31', // 長期休暇
+  '2026-10-13', // 振替休日
+  '2026-12-24', // 振替休日
+].forEach(d => SCHEDULE[d] = 'holiday');
+
+// 夏休み
+setRange('2026-07-21','2026-08-28','holiday');
+// 冬休み
+setRange('2026-12-25','2027-01-06','holiday');
+SCHEDULE['2026-12-30'] = 'nobus'; // 冬休み中だがバス運行なし
+SCHEDULE['2026-12-31'] = 'nobus';
+SCHEDULE['2027-01-01'] = 'nobus';
+// 春休み
+setRange('2027-03-27','2027-03-31','holiday');
+
+// 半日保育
+[
+  '2026-04-08','2026-04-09','2026-04-10',
+  '2026-07-17',
+  '2026-09-01',
+  '2026-12-23', // 二学期終業式
+  '2027-01-08',
+  '2027-03-19',
+].forEach(d => SCHEDULE[d] = 'half');
+
+const BUS_TIMES = {
+  normal: {
+    morning:  { badge:'あおりんご', badgeCls:'badge-aoringo', name:'あおりんごバス', time:'08:15', unit:'発' },
+    aoringo:  { badge:'あおりんご', badgeCls:'badge-aoringo', name:'あおりんごバス', time:'14:34', unit:'着' },
+    kobus1:   { badge:'コバス①',   badgeCls:'badge-k1',      name:'ぶどうバス',     time:'16:42', unit:'着' },
+    kobus2:   { badge:'コバス②',   badgeCls:'badge-k2',      name:'ぶどうバス',     time:'17:42', unit:'着' },
+  },
+  wed: {
+    morning:  { badge:'あおりんご', badgeCls:'badge-aoringo', name:'あおりんごバス', time:'08:15', unit:'発' },
+    aoringo:  { badge:'あおりんご', badgeCls:'badge-aoringo', name:'あおりんごバス', time:'13:34', unit:'着' },
+    kobus1:   { badge:'コバス①',   badgeCls:'badge-k1',      name:'ぶどうバス',     time:'16:43', unit:'着' },
+    kobus2:   { badge:'コバス②',   badgeCls:'badge-k2',      name:'ぶどうバス',     time:'17:50', unit:'着' },
+  },
+  half: {
+    morning:  { badge:'あおりんご', badgeCls:'badge-aoringo', name:'あおりんごバス', time:'08:15', unit:'発' },
+    aoringo:  { badge:'あおりんご', badgeCls:'badge-aoringo', name:'あおりんごバス', time:'11:34', unit:'着' },
+    kobus1:   { badge:'コバス①',   badgeCls:'badge-k1',      name:'ぶどうバス',     time:'16:43', unit:'着' },
+    kobus2:   { badge:'コバス②',   badgeCls:'badge-k2',      name:'ぶどうバス',     time:'17:50', unit:'着' },
+  },
+  holiday: {
+    morning:  { badge:'ぶどう',   badgeCls:'badge-k',  name:'ぶどうバス', time:'08:27', unit:'発' },
+    kobus:    { badge:'コバス',   badgeCls:'badge-k',  name:'ぶどうバス', time:'17:41', unit:'着', note:'コバス①②共通（1本のみ）' },
+  },
+  nobus: null
+};
+BUS_TIMES.gs = BUS_TIMES.normal;
+
+const TYPE_LABEL = {
+  normal:  { text:'通常保育日',              cls:'type-normal' },
+  wed:     { text:'水曜日',                  cls:'type-wed' },
+  half:    { text:'半日保育',                cls:'type-half' },
+  gs:      { text:'GS（英語教室）のある日',   cls:'type-gs' },
+  holiday: { text:'振替休日・長期休暇',       cls:'type-holiday' },
+  nobus:   { text:'休園日',                  cls:'type-nobus' },
+};
+
+const WEEKDAYS = ['日','月','火','水','木','金','土'];
+
+function getDayType(date) {
+  const key = fmt(date);
+  const dow = date.getDay();
+  if (dow === 0 || dow === 6) return 'nobus';
+  if (SCHEDULE[key]) return SCHEDULE[key];
+  if (dow === 3) return 'wed';
+  return 'normal';
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) =>
+    t.classList.toggle('active', (i===0&&tab==='today')||(i===1&&tab==='calendar')));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  if (tab === 'calendar') renderCalendar();
+}
+
+const picker = document.getElementById('datePicker');
+function goToday() { const t = new Date(); picker.value = fmt(t); renderBus(t); }
+function onDateChange() { if (picker.value) renderBus(new Date(picker.value + 'T00:00:00')); }
+
+function busCardHTML(cardCls, direction, b) {
+  return `<div class="bus-card ${cardCls}">
+    <div class="bus-direction"><span class="dot"></span>${direction}</div>
+    <div class="bus-badge ${b.badgeCls}">${b.badge}</div>
+    <div class="bus-name">${b.name}</div>
+    <div class="bus-time">${b.time}<span class="unit">${b.unit}</span></div>
+    ${b.note ? `<div class="bus-note">ℹ️ ${b.note}</div>` : ''}
+  </div>`;
+}
+
+function renderBus(date) {
+  const dow = date.getDay();
+  document.getElementById('dateMain').textContent = `${date.getMonth()+1}月${date.getDate()}日（${WEEKDAYS[dow]}）`;
+  const type = getDayType(date);
+  document.getElementById('dateType').innerHTML = `<span class="date-type ${TYPE_LABEL[type].cls}">${TYPE_LABEL[type].text}</span>`;
+  const bc = document.getElementById('busCards');
+  const times = BUS_TIMES[type];
+  if (!times) { bc.innerHTML = `<div class="bus-card no-bus"><div class="no-bus-msg">🚫 本日はバス運行なし</div></div>`; return; }
+  let html = `<div class="section-label">🌅 朝 / 登園</div>`;
+  html += busCardHTML('morning', '登園バス', times.morning);
+  html += `<div class="section-label">🌇 帰り / 降園</div>`;
+  if (type === 'holiday') {
+    html += busCardHTML('kobus-single', 'コバス（1本のみ）', times.kobus);
+  } else {
+    html += busCardHTML('aoringo', 'あおりんごバス', times.aoringo);
+    html += busCardHTML('kobus1',  'コバス①', times.kobus1);
+    html += busCardHTML('kobus2',  'コバス②', times.kobus2);
+  }
+  bc.innerHTML = html;
+}
+
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+const todayKey = fmt(new Date());
+
+function renderCalendar() {
+  document.getElementById('calTitle').textContent = `${calYear}年 ${calMonth+1}月`;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  const first = new Date(calYear, calMonth, 1);
+  const last  = new Date(calYear, calMonth+1, 0);
+  for (let i = 0; i < first.getDay(); i++) { const e = document.createElement('div'); e.className='cal-cell empty'; grid.appendChild(e); }
+  for (let day = 1; day <= last.getDate(); day++) {
+    const d = new Date(calYear, calMonth, day);
+    const type = getDayType(d);
+    const dow = d.getDay();
+    const cell = document.createElement('div');
+    cell.className = `cal-cell t-${type} ${dow===0?'sun':dow===6?'sat':''} ${fmt(d)===todayKey?'today':''}`;
+    cell.innerHTML = `<div class="cal-day">${day}</div><div class="cal-dot"></div>`;
+    cell.onclick = () => showDetail(d, cell);
+    grid.appendChild(cell);
+  }
+  document.getElementById('detailPopup').classList.remove('show');
+}
+
+function showDetail(date, cell) {
+  document.querySelectorAll('.cal-cell.selected').forEach(c => c.classList.remove('selected'));
+  cell.classList.add('selected');
+  const dow = date.getDay(), type = getDayType(date), times = BUS_TIMES[type];
+  const label = TYPE_LABEL[type];
+  let html = `<div class="detail-date">${date.getMonth()+1}月${date.getDate()}日（${WEEKDAYS[dow]}）<span class="date-type ${label.cls}" style="font-size:11px">${label.text}</span></div><div class="detail-buses">`;
+  if (!times) {
+    html += `<div class="detail-no">🚫 バス運行なし</div>`;
+  } else {
+    html += `<div class="detail-section">朝 / 登園</div>`;
+    html += detailRow(times.morning);
+    html += `<div class="detail-section">帰り / 降園</div>`;
+    if (type === 'holiday') { html += detailRow(times.kobus); }
+    else { html += detailRow(times.aoringo) + detailRow(times.kobus1) + detailRow(times.kobus2); }
+  }
+  html += `</div>`;
+  const popup = document.getElementById('detailPopup');
+  popup.innerHTML = html;
+  popup.classList.add('show');
+  setTimeout(() => popup.scrollIntoView({behavior:'smooth', block:'nearest'}), 50);
+}
+
+function detailRow(b) {
+  return `<div class="detail-bus">
+    <span class="dbadge ${b.badgeCls}">${b.badge}</span>
+    <div><div class="dname">${b.name}</div>${b.note?`<div class="dnote">${b.note}</div>`:''}</div>
+    <div class="dtime">${b.time}<span class="dunit"> ${b.unit}</span></div>
+  </div>`;
+}
+
+function prevMonth() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function nextMonth() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+
+goToday();
+</script>
+</body>
+</html>
